@@ -119,7 +119,7 @@ int main()
 			{
 				cout << currFolder->Format(command) << endl << endl;
 				continue;
-			}
+		}
 			cout << "The system can not find the directory specified"<<endl<<endl;
 		}
 		if (currFolder->isTree(command))

@@ -338,7 +338,7 @@ public:
 			{
 				subFolders.erase(i);
 				break;
-			}
+	}
 		}
 	}
 
@@ -407,19 +407,14 @@ public:
 	}
 	bool isExtensionValid(string input)
 	{
-		string name = getSubStrAftrSpaceN(input, 1);
 		if (name.length() >= 4 && name.substr(name.length() - 4) == ".txt")
 			return true;
-		if (name.length() >= 5 && name.substr(name.length() - 5) == ".text")
 			return true;
 
 		return false;
 	}
 	File* createFile(string input)
 	{
-		string name = getSubStrAftrSpaceN(input, 1);
-		File* newFile = new File(name, false);
-		newFile->parentFolder = this;
 		files.push_back(newFile);
 		return newFile;
 	}
@@ -468,7 +463,6 @@ public:
 	bool del(string input)
 	{
 		bool del = false;
-		string name = getSubStrAftrSpaceN(input, 1);
 		for (auto itr = files.begin(); itr != files.end();itr++)
 		{
 			if ((*itr)->name == name)
@@ -481,7 +475,7 @@ public:
 		}
 		return del;
 	}
-
+	
 	bool isConvert(string input)
 	{
 		string command = lowerCase(input.substr(0, 7));
@@ -520,7 +514,6 @@ public:
 			if ((*i)->getExtension() == ext1)
 			{
 				int dotPos = findDotPosition((*i)->name);
-				(*i)->name.replace(dotPos, ext1.length(), ext2);
 				(*i)->type = ext2;
 			}
 			else if ((*i)->getExtension() == ext2)
@@ -705,7 +698,6 @@ public:
 		// Iterate until we find the desired number of spaces
 		for (int i = 0; i < numSpaces; ++i) {
 			if (spacePos == string::npos)
-				return input.substr(spacePos, input.length() - 1);
 			spacePos = input.find(' ', spacePos + 1);
 		}
 
@@ -722,36 +714,10 @@ public:
 		else
 			return input;
 	}
-	string getSubStrAftrNslashes(string input, int numSlashes) {
-		numSlashes--;
-		int spacePos = input.find('\\');
-
-		// Iterate until we find the desired number of spaces
-		for (int i = 0; i < numSlashes; ++i) {
-			if (spacePos == string::npos)
-				return input.substr(spacePos, input.length() - 1);  // Return an empty string if there are fewer spaces than expected
-			spacePos = input.find('\\', spacePos + 1);
-		}
-
-		// If we found the desired number of spaces, return the substring after the last one
-		if (spacePos != string::npos)
-		{
-			// Find the position of the second space after the first one
-			int secondSpacePos = input.find('\\', spacePos + 1);
-			if (secondSpacePos != string::npos)
-				return input.substr(spacePos + 1, secondSpacePos - spacePos - 1);
-			else
-				return input.substr(spacePos + 1);
-		}
-		else
-			return "";
-	}
-	int findDotPosition(string input) {
 		int dotPos = input.find('.');
 
 		// Check if a dot is found
 		if (dotPos != std::string::npos) {
-			return dotPos;  // Convert size_t to int for consistency
 		}
 		else {
 			return -1;  // Return -1 to indicate that the dot is not found
