@@ -4,6 +4,7 @@
 #include<cctype>
 #include<stack>
 
+
 class node
 {
 public:
@@ -81,7 +82,7 @@ public:
 			return true;
 		else if (command1 == "attrib" && input[6] == ' ')
 			return true;
-			
+
 		return false;
 	}
 	bool attrib(string input)
@@ -107,14 +108,14 @@ public:
 	{
 		for (auto folder : subFolders)
 		{
-			cout<< setw(10) << "" << folder->getPath() << endl;
+			cout << setw(10) << "" << folder->getPath() << endl;
 		}
 	}
 	void printFilesWithPath()
 	{
 		for (auto file : files)
 		{
-			cout << setw(10)<< "" << getPath(file) << endl;
+			cout << setw(10) << "" << getPath(file) << endl;
 		}
 
 	}
@@ -122,7 +123,7 @@ public:
 	{
 		for (auto folder : folderName->subFolders)
 		{
-			cout << setw(10)<<"" << folder->getPath() << endl;
+			cout << setw(10) << "" << folder->getPath() << endl;
 		}
 	}
 	void printFilesWithPath(node* folderName)
@@ -133,7 +134,7 @@ public:
 		}
 
 	}
-	
+
 	bool isCopy(string input)
 	{
 		string command = lowerCase(input.substr(0, 4));
@@ -338,7 +339,7 @@ public:
 			{
 				subFolders.erase(i);
 				break;
-	}
+			}
 		}
 	}
 
@@ -407,14 +408,19 @@ public:
 	}
 	bool isExtensionValid(string input)
 	{
+		string name = getSubStrAftrSpaceN(input, 1);
 		if (name.length() >= 4 && name.substr(name.length() - 4) == ".txt")
 			return true;
+		if (name.length() >= 5 && name.substr(name.length() - 5) == ".text")
 			return true;
 
 		return false;
 	}
 	File* createFile(string input)
 	{
+		string name = getSubStrAftrSpaceN(input, 1);
+		File* newFile = new File(name, false);
+		newFile->parentFolder = this;
 		files.push_back(newFile);
 		return newFile;
 	}
@@ -439,15 +445,15 @@ public:
 		bool isExtValid = isExtensionValid(newName);
 
 		if (file == nullptr)
-				return "The system can not find the file specified.";
+			return "The system can not find the file specified.";
 		else if (!isExtValid)
-				return "Extension of new file is not valid.";
+			return "Extension of new file is not valid.";
 		else if (file2 != nullptr)
-				return "File with this name already exist.";
+			return "File with this name already exist.";
 
-			file->name = newName;
-			
-			return "renamed successfully";
+		file->name = newName;
+
+		return "renamed successfully";
 
 	}
 
@@ -463,6 +469,7 @@ public:
 	bool del(string input)
 	{
 		bool del = false;
+		string name = getSubStrAftrSpaceN(input, 1);
 		for (auto itr = files.begin(); itr != files.end();itr++)
 		{
 			if ((*itr)->name == name)
@@ -475,7 +482,7 @@ public:
 		}
 		return del;
 	}
-	
+
 	bool isConvert(string input)
 	{
 		string command = lowerCase(input.substr(0, 7));
@@ -514,6 +521,7 @@ public:
 			if ((*i)->getExtension() == ext1)
 			{
 				int dotPos = findDotPosition((*i)->name);
+				(*i)->name.replace(dotPos, ext1.length(), ext2);
 				(*i)->type = ext2;
 			}
 			else if ((*i)->getExtension() == ext2)
@@ -569,7 +577,7 @@ public:
 	void help()
 	{
 		system("cls");
-		cout << "COMMAND                                            DESCRIPTION" << endl<< endl<< endl;
+		cout << "COMMAND                                            DESCRIPTION" << endl << endl << endl;
 		cout << "ATTRIB  "
 			<< "                "
 			<< "Displays Files and Folders of Current or Provided Folder." << endl;
@@ -659,13 +667,13 @@ public:
 			<< "Saves the currently open file to disk.TREE Displays the complete directory structure.VER Displays the version of your program." << endl;
 		cout << "TREE    "
 			<< "                "
-			<< "Displays the complete directory structure."<<endl;
+			<< "Displays the complete directory structure." << endl;
 		cout << "CLS     "
 			<< "                "
 			<< "Clears the screen." << endl;
 		cout << "VER     "
 			<< "                "
-			<< "Displays the version of your program." <<endl <<endl;
+			<< "Displays the version of your program." << endl << endl;
 	}
 
 	bool isCls(string input)
@@ -693,11 +701,12 @@ public:
 		int spacePos = input.find(' ');
 
 		if (numSpaces < 0)
-			return input.substr(0,spacePos);
+			return input.substr(0, spacePos);
 
 		// Iterate until we find the desired number of spaces
 		for (int i = 0; i < numSpaces; ++i) {
 			if (spacePos == string::npos)
+				return input.substr(spacePos, input.length() - 1);
 			spacePos = input.find(' ', spacePos + 1);
 		}
 
@@ -714,10 +723,36 @@ public:
 		else
 			return input;
 	}
+	string getSubStrAftrNslashes(string input, int numSlashes) {
+		numSlashes--;
+		int spacePos = input.find('\\');
+
+		// Iterate until we find the desired number of spaces
+		for (int i = 0; i < numSlashes; ++i) {
+			if (spacePos == string::npos)
+				return input.substr(spacePos, input.length() - 1);  // Return an empty string if there are fewer spaces than expected
+			spacePos = input.find('\\', spacePos + 1);
+		}
+
+		// If we found the desired number of spaces, return the substring after the last one
+		if (spacePos != string::npos)
+		{
+			// Find the position of the second space after the first one
+			int secondSpacePos = input.find('\\', spacePos + 1);
+			if (secondSpacePos != string::npos)
+				return input.substr(spacePos + 1, secondSpacePos - spacePos - 1);
+			else
+				return input.substr(spacePos + 1);
+		}
+		else
+			return "";
+	}
+	int findDotPosition(string input) {
 		int dotPos = input.find('.');
 
 		// Check if a dot is found
 		if (dotPos != std::string::npos) {
+			return dotPos;  // Convert size_t to int for consistency
 		}
 		else {
 			return -1;  // Return -1 to indicate that the dot is not found
