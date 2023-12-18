@@ -1,12 +1,27 @@
 ﻿#pragma once
+#include <fstream>
 #include "File.h"
-#include<list>
-#include<cctype>
-#include<stack>
+#include <list>
+#include <cctype>
+#include <stack>
+#include "textEditor.h"
+#include <queue>
 
+list<string> Files;
+queue<File*> pq;
+queue<File*> que;
+
+struct FilePriorityComparator
+{
+	bool operator()(File* file1, File* file2)
+	{
+		return file1->priorityValue() < file2->priorityValue();
+	}
+};
 
 class node
 {
+	friend class textEditor;
 public:
 	string name;
 	string creationTime;
@@ -62,14 +77,14 @@ public:
 		}
 		return nullptr;
 	}
-	File* isFileExist(string input)
+	string* isFileExist(string input)
 	{
 		string name = getSubStrAftrSpaceN(input, 1);
 
-		for (File* n : files)
+		for (string fileName : Files)
 		{
-			if (n->name == name)
-				return n;
+			if (fileName == name)
+				return &fileName;
 		}
 		return nullptr;
 	}
@@ -422,7 +437,179 @@ public:
 		File* newFile = new File(name, false);
 		newFile->parentFolder = this;
 		files.push_back(newFile);
+
+
+		Files.push_back(name);
+		ofstream wrt(name.c_str());
+		wrt.close();
+		textEditor::closing();
 		return newFile;
+	}
+
+	bool isEdit(string input)
+	{
+		string command = lowerCase(input.substr(0, 4));
+		if (command == "edit")
+		{
+			return true;
+		}
+		return false;
+	}
+	void edit(string input)
+	{
+		string filename = getSubStrAftrSpaceN(input, 1);
+		File* file = Find(filename);
+
+		if (file == nullptr)
+		{
+			cout << "File does not exist.";
+			return;
+		}
+		clearScreen();
+		ifstream rdr(filename.c_str());
+		textEditor fileEditor;
+		fileEditor.openSavedFile(rdr);
+		rdr.close();
+
+		ofstream wrt(filename.c_str(), ios_base::app);
+		clearScreen();
+		fileEditor.editFile(wrt);
+		clearScreen();
+		system("color 09");
+		wrt.close();
+
+	}
+	void editing()
+	{
+		system("color 09");
+		int r = 0, c = 0;
+
+		textEditor currFile;
+		ifstream rdr;
+		ofstream wrtr;
+		//rdr.open("SaveFile.txt");
+		//wrtr.open("RecentFile.txt");
+		//currFile.input(rdr);
+		while (true)
+		{
+			//currFile.choice(rdr);
+		}
+		rdr.close();
+
+	}
+
+	bool isPprint(string input)
+	{
+		string command = lowerCase(input.substr(0, input.find(' ')));
+		if (command == "pprint")
+		{
+			return true;
+		}
+		return false;
+	}
+	File* addToPriorityQueue(string input)
+	{
+		string fileName = getSubStrAftrSpaceN(input,1);
+		File* file = Find(fileName);
+		if (file == nullptr)
+			return nullptr;
+		
+		if (pq.empty())
+		{
+			pq.push(file);
+		}
+		else
+		{
+			File* currPrintingFile = pq.front();
+			pq.pop();
+
+			priority_queue<File*,vector<File*>,FilePriorityComparator> priorityQ;
+			priorityQ.push(file);
+			while (!pq.empty())
+			{
+				priorityQ.push(pq.front());
+				pq.pop();
+			}
+			pq.push(currPrintingFile);
+			while (!priorityQ.empty())
+			{
+				pq.push(priorityQ.top());
+				priorityQ.pop();
+			}
+		}
+		return file;
+	}
+	void pprint()
+	{
+		queue<File*> temp = pq;
+		while (!temp.empty())
+		{
+			cout << temp.front()->name << "     " << temp.front()->priorityString()<< endl;
+			temp.pop();
+		}
+	}
+
+	bool isPrint(string input)
+	{
+		string command = lowerCase(input.substr(0, input.find(' ')));
+		if (command == "print")
+		{
+			return true;
+		}
+		return false;
+	}
+	File* addToQueue(string input)
+	{
+		string fileName = getSubStrAftrSpaceN(input, 1);
+		File* file = Find(fileName);
+		if (file == nullptr)
+			return nullptr;
+		
+		que.push(file);
+
+		return file;
+	}
+	void print()
+	{
+		queue<File*> temp = que;
+		while (!temp.empty())
+		{
+			cout << temp.front()->name << "     " << endl;
+			temp.pop();
+		}
+	}
+
+	bool isQueue(string input)
+	{
+		string command = lowerCase(input);
+		if (command == "queue")
+		{
+			return true;
+		}
+		return false;
+	}
+	bool isPqueue(string input)
+	{
+		string command = lowerCase(input);
+		if (command == "pqueue")
+		{
+			return true;
+		}
+		return false;
+	}
+
+	void loadingFiles()
+	{
+		ifstream rdr;
+		rdr.open("fileNames.txt");
+		string filename;
+		rdr >> filename;
+
+		while (!rdr.eof())
+		{
+			Files.push_back(filename);
+			rdr >> filename;
+		}
 	}
 
 	bool isRename(string input)
@@ -689,6 +876,19 @@ public:
 		system("cls");
 	}
 
+	bool isVer(string input)
+	{
+		string command = lowerCase(input);
+		if (input == "ver")
+			return true;
+
+		return false;
+	}
+	void ver()
+	{
+		cout << "Microsoft Windows [Version 10.0.19045.3803]" << endl << endl;
+	}
+	
 	string lowerCase(string input)
 	{
 		string lower = "";
@@ -766,5 +966,23 @@ public:
 			}
 		}
 		return count;
+	}
+	string removeLeadingSpaces(string input) {
+		string result;
+
+		// Find the position of the first non-space character
+		int firstNonSpace = input.find_first_not_of(' ');
+
+		// Check if the string is not empty and contains spaces before the first character
+		if (firstNonSpace != string::npos && firstNonSpace > 0) {
+			// Extract the substring starting from the first non-space character
+			result = input.substr(firstNonSpace);
+		}
+		else {
+			// No leading spaces found, return the original string
+			result = input;
+		}
+
+		return result;
 	}
 };

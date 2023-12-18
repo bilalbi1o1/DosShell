@@ -3,12 +3,13 @@
 #include<chrono>
 #include<sstream>
 #include<iomanip>
+#include<random>
 
 using namespace std;
 
 enum priorityLevel
 {
-	High, Normal, Low
+	Low,Normal,High
 };
 class File
 {
@@ -32,7 +33,7 @@ public:
 		type = getExtension();
 		creationTime = setCreationTime();
 		owner = "Bilal";
-		priority = Normal;
+		priority = getRandomPriority();
 		readOnly = isReadOnly;
 	}
 	
@@ -63,5 +64,43 @@ public:
 			return ".txt";
 		else
 			return ".text";
+	}
+	priorityLevel getRandomPriority() {
+		
+		random_device rd;
+		mt19937 gen(rd());
+		uniform_int_distribution<> distribution(0, 2);
+
+		int randomPriorityValue = distribution(gen);
+
+		// Convert the random value to the Priority enum
+		switch (randomPriorityValue) {
+		case 1:
+			return Low;
+		case 2:
+			return Normal;
+		case 3:
+			return High;
+		default:
+			return Normal; // Default to Normal if something unexpected happens
+		}
+	}
+	int priorityValue()
+	{
+		if (priority == High)
+			return 2;
+		else if (priority == Normal)
+			return 1;
+		else
+			return 0;
+	}
+	string priorityString()
+	{
+		if (priority == 2)
+			return "High";
+		else if (priority == 1)
+			return "Normal";
+		else
+			return "Low";
 	}
 };
