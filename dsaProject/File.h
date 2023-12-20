@@ -1,9 +1,10 @@
 #pragma once
 #include <string>
-#include<chrono>
-#include<sstream>
-#include<iomanip>
-#include<random>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
+#include <random>
+#include <filesystem>
 
 using namespace std;
 
@@ -20,7 +21,7 @@ public:
 	node* parentFolder;
 	int numberOfCharacters;
 	int numberOfLines;
-	float avgNumOfCharPerLine;
+	double avgNumOfCharPerLine;
 	string creationTime;
 	string owner;
 	priorityLevel priority;
@@ -34,6 +35,10 @@ public:
 		creationTime = setCreationTime();
 		owner = "Bilal";
 		priority = getRandomPriority();
+		numberOfCharacters = 0;
+		numberOfLines = 0;
+		avgNumOfCharPerLine = 0;
+		timeTakesForPrint = 0;
 		readOnly = isReadOnly;
 	}
 	
@@ -58,6 +63,75 @@ public:
 		// Return the formatted time as a string
 		return oss.str();
 	}
+	void setTimeToPrint()
+	{
+		int charactersInFile = numberOfCharacters;
+		float timeInSeconds = charactersInFile * 10;
+		timeTakesForPrint = timeInSeconds;
+	}
+	void setcountLinesInFile() {
+		ifstream file(name);
+
+		if (!file.is_open()) {
+			cout << "Error opening file: " << name << std::endl;
+			return;
+		}
+
+		int lineCount = 0;
+		string line;
+
+		while (std::getline(file, line))
+			lineCount++;
+
+		file.close();
+		numberOfLines = lineCount;
+	}
+	void setcountCharactersInFile() {
+		ifstream file(name);
+
+		if (!file.is_open()) {
+			cout << "Error opening file: " << name << endl;
+			return; // Return -1 to indicate an error
+		}
+
+		int characterCount = 0;
+		char c;
+
+		while (file.get(c)) {
+			characterCount++;
+		}
+
+		file.close();
+		numberOfCharacters = characterCount;
+	}
+	void setaverageCharactersPerLine() {
+		ifstream file(name);
+
+		if (!file.is_open()) {
+			cout << "Error opening file: " << name << std::endl;
+			return;
+		}
+
+		int totalCharacters = 0;
+		int lineCount = 0;
+		string line;
+
+		while (getline(file, line)) {
+			totalCharacters += line.length();
+			lineCount++;
+		}
+
+		file.close();
+
+		if (lineCount == 0) {
+			cout << "File is empty." << endl;
+			avgNumOfCharPerLine = 0;
+			return;
+		}
+
+		avgNumOfCharPerLine = static_cast<double>(totalCharacters) / lineCount;
+	}
+
 	string getExtension()
 	{
 		if (name.substr(name.length() - 4) == ".txt")

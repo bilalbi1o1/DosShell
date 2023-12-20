@@ -6,6 +6,7 @@
 #include <stack>
 #include "textEditor.h"
 #include <queue>
+#include <tuple>
 
 queue<File*> pq;
 queue<File*> que;
@@ -31,7 +32,7 @@ public:
 	list<node*> subFolders;
 	list<File*> files;
 
-	node(string foldername,node* parentFolder, bool isReadOnly)
+	node(string foldername, node* parentFolder, bool isReadOnly)
 	{
 		name = foldername;
 		creationTime = File::setCreationTime();
@@ -68,7 +69,7 @@ public:
 
 	node* isdirExist(string input)
 	{
-		string name = getSubStrAftrSpaceN(input, 1);
+		string name = getStrAfterSpaceN(input, 1);
 
 		for (node* n : subFolders)
 		{
@@ -79,37 +80,28 @@ public:
 	}
 	bool isFileExist(string input)
 	{
-		string name = getSubStrAftrSpaceN(input, 1);
+		string name = getStrAfterSpaceN(input, 1);
 
 		bool isExist = Find(name);
 		return isExist;
 	}
 
-	bool isAttrib(string input)
-	{
-		string command1 = lowerCase(getSubStrAftrSpaceN(input, 0));
-		string command2 = lowerCase(getSubStrAftrSpaceN(input, 1));
-		if (command1 == "attrib" && command1 == command2)
-			return true;
-		else if (command1 == "attrib" && input[6] == ' ')
-			return true;
-
-		return false;
-	}
 	bool attrib(string input)
 	{
-		string command1 = lowerCase(getSubStrAftrSpaceN(input, 0));
-		string command2 = lowerCase(getSubStrAftrSpaceN(input, 1));
-		if (command1 == command2)
+		string fileName = lowerCase(getStrAfterSpaceN(input, 1));
+		
+		if (File* file = Find(fileName))
 		{
-			printFoldersWithPath();
-			printFilesWithPath();
-			return true;
-		}
-		else if (node* folder = isdirExist(command2))
-		{
-			printFoldersWithPath(folder);
-			printFilesWithPath(folder);
+			cout << "              Details of the given file are  " << endl << endl;
+			cout << "	Name            : " << file->name << endl;
+			cout << "	Owner           : " << file->owner << endl;
+			cout << "	Read Only        : " << file->readOnly << endl;
+			cout << "	Creation Time      : " << file->creationTime << endl;
+			cout << "	Number of Lines     : " << file->numberOfLines << endl;
+			cout << "	Number of Characters   : " << file->numberOfCharacters << endl;
+			cout << "	Avg num of char per line : " << file->avgNumOfCharPerLine << endl;
+			cout << "	Priority Level      : " << file->priorityString() << endl;
+			cout << "	Time takes to Print    : " << file->timeTakesForPrint << "seconds" << endl << endl;
 			return true;
 		}
 		return false;
@@ -146,18 +138,12 @@ public:
 
 	}
 
-	bool isCopy(string input)
-	{
-		string command = lowerCase(input.substr(0, 4));
-		if (command == "copy")
-			return true;
-
-		return false;
-	}
 	string copy(string input)
 	{
-		string sourcePath = getSubStrAftrSpaceN(input, 1);
-		string destinationPath = getSubStrAftrSpaceN(input, 2);
+		string sourceDestinationPath = getStrAfterSpaceN(input, 1);
+		tuple<string, string > paths = getSourceDestinationPaths(sourceDestinationPath);
+		string sourcePath = get<0>(paths);
+		string destinationPath = get<1>(paths);
 		node* source = isPathValid(sourcePath);
 		node* destination = isPathValid(destinationPath);
 
@@ -179,15 +165,35 @@ public:
 		else
 			return "Invalid Path(s).";
 	}
-
-	bool isLoadTree(string input)
+	string move(string input)
 	{
-		string command = lowerCase(input);
-		if (command == "loadtree")
-			return true;
-		
-		return false;
+		string sourceDestinationPath = getStrAfterSpaceN(input, 1);
+		tuple<string, string > paths = getSourceDestinationPaths(sourceDestinationPath);
+		string sourcePath = get<0>(paths);
+		string destinationPath = get<1>(paths);
+		node* source = isPathValid(sourcePath);
+		node* destination = isPathValid(destinationPath);
+
+		if (source != nullptr && destination != nullptr)
+		{
+			int count = specificCharCount(sourcePath, '\\');
+			string fileName = getSubStrAftrNslashes(sourcePath, count);
+			File* isFileCopied = Find(fileName, source);
+
+			if (isFileCopied != nullptr)
+			{
+				File* file = new File(isFileCopied->name, false);
+				destination->files.push_back(file);
+
+				source->del(isFileCopied->name);
+				return "File moved.";
+			}
+			return "File with this name does not exist in the specified directory.";
+		}
+		else
+			return "Invalid Path(s).";
 	}
+
 	void loadTree()
 	{
 		ifstream file("tree.txt");
@@ -211,7 +217,7 @@ public:
 					currFolder = currFolder->findFolder(folder);
 				}
 				getline(path, folder, '\\');
-				node* newFolder = new node(folder,currFolder, "");
+				node* newFolder = new node(folder, currFolder, "");
 				currFolder->subFolders.push_back(newFolder);
 			}
 		}
@@ -255,14 +261,6 @@ public:
 		return nullptr;
 	}
 
-	bool isFind(string input)
-	{
-		string command = lowerCase(input.substr(0, 4));
-		if (command == "find")
-			return true;
-
-		return false;
-	}
 	File* Find(string fileName)
 	{
 		for (auto itr = files.begin(); itr != files.end(); itr++)
@@ -307,14 +305,6 @@ public:
 		return nullptr;
 	}
 
-	bool isTree(string input)
-	{
-		string command = lowerCase(input);
-		if (command == "tree")
-			return true;
-
-		return false;
-	}
 	void Tree(node* currFolder, int depth)
 	{
 		if (currFolder == nullptr)
@@ -331,42 +321,20 @@ public:
 		}
 	}
 
-	bool isPrompt(string input)
+	char prompt(string input,string sign)
 	{
-		string command = lowerCase(input.substr(0, 6));
-		int length = input.length();
-		if (command == "prompt")
-		{
-			if (length == 6)
-				return true;
-			if (length > 7 && input[6] == ' ')
-				return true;
-		}
-
-		return false;
-	}
-	char prompt(string input)
-	{
-		string command = lowerCase(getSubStrAftrSpaceN(input, 1));
-		if (command == "prompt")
+		string command = lowerCase(getStrAfterSpaceN(input, 1));
+		if (command == "prompt" && sign == "")
 			return '>';
-		else if (command.length() == 1)
+		else if (sign.length() == 1)
 		{
-			char cmdPrompt = command[0];
+			char cmdPrompt = sign[0];
 			if (!(cmdPrompt >= 'a' && cmdPrompt <= 'z' || cmdPrompt >= '0' && cmdPrompt <= '9'))
 				return cmdPrompt;
 		}
 		return NULL;
 	}
 
-	bool isFormat(string input)
-	{
-		string command = lowerCase(input.substr(0, 6));
-		if (command == "format")
-			return true;
-
-		return false;
-	}
 	string Format(string input)
 	{
 		node* curr = isdirExist(input);
@@ -389,31 +357,15 @@ public:
 		return "Formatted";
 	}
 
-	bool ismkdir(string input)
-	{
-		string command = lowerCase(input.substr(0, 5));
-		if (command == "mkdir")
-			return true;
-
-		return false;
-	}
 	void mkdir(string input)
 	{
 
 		string subFolderName = input.substr(6, input.length());
-		node* subFolder = new node(subFolderName,this, false);
+		node* subFolder = new node(subFolderName, this, false);
 
 		this->subFolders.push_back(subFolder);
 	}
 
-	bool isrmdir(string input)
-	{
-		string command = lowerCase(input.substr(0, 5));
-		if (command == "rmdir")
-			return true;
-
-		return false;
-	}
 	void rmdir(string input)
 	{
 
@@ -428,15 +380,6 @@ public:
 		}
 	}
 
-	bool isChangeDir(string input)
-	{
-		string cd = lowerCase(input.substr(0, 2));
-		if (cd == "cd")
-		{
-			return true;
-		}
-		return false;
-	}
 	node* changeDir(string input)
 	{
 		string chDir = input.substr(3, input.length());
@@ -444,34 +387,12 @@ public:
 		return curr;
 	}
 
-	bool isPrevDir(string input)
-	{
-		input = lowerCase(input);
-		if (input == "cd..")
-			return true;
-		return false;
-	}
 	node* prevDir()
 	{
 		node* curr = this->parent;
 		return curr;
 	}
 
-	bool isCurrDir(string input)
-	{
-		input = lowerCase(input);
-		if (input == "cd.")
-			return true;
-		return false;
-	}
-
-	bool isGotoRoot(string input)
-	{
-		input = lowerCase(input);
-		if (input == "cd\\")
-			return true;
-		return false;
-	}
 	node* getRoot()
 	{
 		node* itr = this;
@@ -482,18 +403,9 @@ public:
 		return itr;
 	}
 
-	bool isCreate(string input)
-	{
-		string command = lowerCase(input.substr(0, 6));
-		if (command == "create")
-		{
-			return true;
-		}
-		return false;
-	}
 	bool isExtensionValid(string input)
 	{
-		string name = getSubStrAftrSpaceN(input, 1);
+		string name = getStrAfterSpaceN(input, 1);
 		if (name.length() >= 4 && name.substr(name.length() - 4) == ".txt")
 			return true;
 		if (name.length() >= 5 && name.substr(name.length() - 5) == ".text")
@@ -503,7 +415,7 @@ public:
 	}
 	File* createFile(string input)
 	{
-		string name = getSubStrAftrSpaceN(input, 1);
+		string name = getStrAfterSpaceN(input, 1);
 		File* newFile = new File(name, false);
 		newFile->parentFolder = this;
 		files.push_back(newFile);
@@ -511,18 +423,45 @@ public:
 		return newFile;
 	}
 
-	bool isEdit(string input)
+	bool findF(string& filename, string& searchString)
 	{
-		string command = lowerCase(input.substr(0, 4));
-		if (command == "edit")
-		{
-			return true;
+		ifstream file(filename);
+
+		if (!file.is_open()) {
+			cout << "Error opening file: " << filename << endl;
+			return false;
 		}
-		return false;
+
+		string line;
+		while (getline(file, line)) {
+			if (line.find(searchString) != string::npos) {
+				file.close(); // Close the file before returning
+				return true;  // String found
+			}
+		}
+
+		file.close(); // Close the file before returning
+		return false;  // String not found
 	}
+	string findstr(string& searchString)
+	{
+		string output = "";
+		for (auto file : files)
+		{
+			if (findF(file->name, searchString))
+			{
+				output = "String found in file: " + file->name + "\n";
+			}
+		}
+		if (output == "")
+			output = "String not found in any file in the current directory.\n";
+
+		return output;
+	}
+
 	void edit(string input)
 	{
-		string filename = getSubStrAftrSpaceN(input, 1);
+		string filename = getStrAfterSpaceN(input, 1);
 		File* file = Find(filename);
 
 		if (file == nullptr)
@@ -539,27 +478,21 @@ public:
 		ofstream wrt(filename.c_str(), ios_base::out);
 		fileEditor.editFile(wrt);
 		clearScreen();
-		system("color 09");
+		system("color 07");
 		wrt.close();
-
+		file->setTimeToPrint();
+		file->setaverageCharactersPerLine();
+		file->setcountCharactersInFile();
+		file->setcountLinesInFile();
 	}
 
-	bool isPprint(string input)
-	{
-		string command = lowerCase(input.substr(0, input.find(' ')));
-		if (command == "pprint")
-		{
-			return true;
-		}
-		return false;
-	}
 	File* addToPriorityQueue(string input)
 	{
-		string fileName = getSubStrAftrSpaceN(input,1);
+		string fileName = getStrAfterSpaceN(input, 1);
 		File* file = Find(fileName);
 		if (file == nullptr)
 			return nullptr;
-		
+
 		if (pq.empty())
 		{
 			pq.push(file);
@@ -569,7 +502,7 @@ public:
 			File* currPrintingFile = pq.front();
 			pq.pop();
 
-			priority_queue<File*,vector<File*>,FilePriorityComparator> priorityQ;
+			priority_queue<File*, vector<File*>, FilePriorityComparator> priorityQ;
 			priorityQ.push(file);
 			while (!pq.empty())
 			{
@@ -590,27 +523,18 @@ public:
 		queue<File*> temp = pq;
 		while (!temp.empty())
 		{
-			cout << temp.front()->name << "     " << temp.front()->priorityString()<< endl;
+			cout << temp.front()->name << "     " << temp.front()->priorityString() << endl;
 			temp.pop();
 		}
 	}
 
-	bool isPrint(string input)
-	{
-		string command = lowerCase(input.substr(0, input.find(' ')));
-		if (command == "print")
-		{
-			return true;
-		}
-		return false;
-	}
 	File* addToQueue(string input)
 	{
-		string fileName = getSubStrAftrSpaceN(input, 1);
+		string fileName = getStrAfterSpaceN(input, 1);
 		File* file = Find(fileName);
 		if (file == nullptr)
 			return nullptr;
-		
+
 		que.push(file);
 
 		return file;
@@ -625,43 +549,14 @@ public:
 		}
 	}
 
-	bool isQueue(string input)
-	{
-		string command = lowerCase(input);
-		if (command == "queue")
-		{
-			return true;
-		}
-		return false;
-	}
-	bool isPqueue(string input)
-	{
-		string command = lowerCase(input);
-		if (command == "pqueue")
-		{
-			return true;
-		}
-		return false;
-	}
-
-	bool isRename(string input)
-	{
-		string command = lowerCase(input.substr(0, 6));
-		int spaceCount = specificCharCount(input, ' ');
-		if (command == "rename" && spaceCount == 2)
-		{
-			return true;
-		}
-		return false;
-	}
 	string renameFile(string input)
 	{
-		string oldName = getSubStrAftrSpaceN(input, 1);
-		string newName = getSubStrAftrSpaceN(input, 2);
+		string combineNames = getStrAfterSpaceN(input, 1);
+		tuple<string,string> names = getSourceDestinationPaths(combineNames);
 
-		File* file = Find(oldName);
-		File* file2 = Find(newName);
-		bool isExtValid = isExtensionValid(newName);
+		File* file = Find(get<0>(names));
+		File* file2 = Find(get<1>(names));
+		bool isExtValid = isExtensionValid(get<1>(names));
 
 		if (file == nullptr)
 			return "The system can not find the file specified.";
@@ -670,25 +565,16 @@ public:
 		else if (file2 != nullptr)
 			return "File with this name already exist.";
 
-		file->name = newName;
+		file->name = get<1>(names);
 
 		return "renamed successfully";
 
 	}
 
-	bool isDel(string input)
-	{
-		string command = lowerCase(input.substr(0, 3));
-		if (command == "del")
-		{
-			return true;
-		}
-		return false;
-	}
 	bool del(string input)
 	{
 		bool del = false;
-		string name = getSubStrAftrSpaceN(input, 1);
+		string name = getStrAfterSpaceN(input, 1);
 		for (auto itr = files.begin(); itr != files.end();itr++)
 		{
 			if ((*itr)->name == name)
@@ -702,28 +588,8 @@ public:
 		return del;
 	}
 
-	bool isConvert(string input)
+	void convert(string ext1,string ext2)
 	{
-		string command = lowerCase(input.substr(0, 7));
-		if (command == "convert")
-		{
-			return true;
-		}
-		return false;
-	}
-
-	bool isExit(string input)
-	{
-		input = lowerCase(input);
-		if (input == "exit")
-			return true;
-		return false;
-	}
-	void convert(string input)
-	{
-		string ext1 = getSubStrAftrSpaceN(input, 1);
-		string ext2 = getSubStrAftrSpaceN(input, 2);
-
 		if (isExtensionValid(ext1) && isExtensionValid(ext2))
 		{
 			changeExtension(ext1, ext2);
@@ -752,13 +618,6 @@ public:
 		}
 	}
 
-	bool isDir(string input)
-	{
-		input = lowerCase(input);
-		if (input == "dir")
-			return true;
-		return false;
-	}
 	void dir()
 	{
 		printSubFolders();
@@ -785,14 +644,6 @@ public:
 		}
 	}
 
-	bool isHelp(string input)
-	{
-		string command = lowerCase(input);
-		if (input == "help")
-			return true;
-
-		return false;
-	}
 	void help()
 	{
 		system("cls");
@@ -895,32 +746,16 @@ public:
 			<< "Displays the version of your program." << endl << endl;
 	}
 
-	bool isCls(string input)
-	{
-		string command = lowerCase(input);
-		if (input == "cls")
-			return true;
-
-		return false;
-	}
 	void clearScreen()
 	{
 		system("cls");
 	}
 
-	bool isVer(string input)
-	{
-		string command = lowerCase(input);
-		if (input == "ver")
-			return true;
-
-		return false;
-	}
 	void ver()
 	{
 		cout << "Microsoft Windows [Version 10.0.19045.3803]" << endl << endl;
 	}
-	
+
 	void saveFolderPaths(node* folder, queue<string>& q)
 	{
 		if (folder == nullptr)
@@ -928,7 +763,7 @@ public:
 		q.push(folder->getPath());
 		for (auto i : folder->subFolders)
 		{
-			saveFolderPaths(i,q);
+			saveFolderPaths(i, q);
 		}
 	}
 	void saveFilePaths(node* folder, queue<string>& q)
@@ -941,7 +776,7 @@ public:
 		}
 		for (auto i : folder->subFolders)
 		{
-			saveFilePaths(i,q);
+			saveFilePaths(i, q);
 		}
 	}
 	void saveTree()
@@ -977,27 +812,9 @@ public:
 		file.close();
 	}
 
-	bool isPwd(string input)
+	void pwd()
 	{
-		string command = lowerCase(input);
-		if (command == "pwd")
-			return true;
-
-		return false;
-	}
-	void pwd(string input)
-	{
-		cout << "Current Working directory is :"<< this->name << endl << endl;
-	}
-
-	bool isSave(string input)
-	{
-		string command = lowerCase(input.substr(0,input.find(' ')));
-		if (command == "save")
-		{
-			return true;
-		}
-		return false;
+		cout << "Current Working directory is :" << this->name << endl << endl;
 	}
 
 	string lowerCase(string input)
@@ -1007,32 +824,20 @@ public:
 			lower += tolower(c);
 		return lower;
 	}
-	string getSubStrAftrSpaceN(string input, int numSpaces) {
+	string getStrAfterSpaceN(string& input, int numSpaces) {
 		numSpaces--;
 		int spacePos = input.find(' ');
 
-		if (numSpaces < 0)
-			return input.substr(0, spacePos);
+		// If no space found, or numSpaces is negative, return the original string
+		if (spacePos == string::npos || numSpaces < 0)
+			return input;
 
 		// Iterate until we find the desired number of spaces
-		for (int i = 0; i < numSpaces; ++i) {
-			if (spacePos == string::npos)
-				return input.substr(spacePos, input.length() - 1);
+		for (int i = 0; i < numSpaces; ++i)
 			spacePos = input.find(' ', spacePos + 1);
-		}
 
-		// If we found the desired number of spaces, return the substring after the last one
-		if (spacePos != string::npos)
-		{
-			// Find the position of the second space after the first one
-			int secondSpacePos = input.find(' ', spacePos + 1);
-			if (secondSpacePos != string::npos)
-				return input.substr(spacePos + 1, secondSpacePos - spacePos - 1);
-			else
-				return input.substr(spacePos + 1);
-		}
-		else
-			return input;
+		// Return the substring after the last space found
+		return input.substr(spacePos + 1);
 	}
 	string getSubStrAftrNslashes(string input, int numSlashes) {
 		numSlashes--;
@@ -1095,5 +900,39 @@ public:
 		}
 
 		return result;
+	}
+	tuple<string , string> getSourceDestinationPaths(string sourceDestinationPath)
+	{
+		tuple<string, string> paths;
+		
+		int txtPos = sourceDestinationPath.find(".txt");
+		int textPos = sourceDestinationPath.find(".text");
+
+		if (txtPos != string::npos && textPos != string::npos)
+		{
+			if (txtPos < textPos)
+			{
+				get<0>(paths) = sourceDestinationPath.substr(0,txtPos+4);
+				get<1>(paths) = sourceDestinationPath.substr(txtPos + 5);
+			}
+			else
+			{
+				get<1>(paths) = sourceDestinationPath.substr(0, textPos + 5);
+				get<0>(paths) = sourceDestinationPath.substr(textPos +6);
+			}
+		}
+		else if (txtPos != string::npos && textPos == string::npos)
+		{
+				get<0>(paths) = sourceDestinationPath.substr(0, txtPos + 4);
+				int txtPos2 = sourceDestinationPath.find(".txt",txtPos + 5);
+				get<1>(paths) = sourceDestinationPath.substr(txtPos + 5);
+		}
+		else if (txtPos == string::npos && textPos != string::npos)
+		{
+			get<0>(paths) = sourceDestinationPath.substr(0, textPos + 5);
+			int textPos2 = sourceDestinationPath.find(".txt", textPos + 6);
+			get<1>(paths) = sourceDestinationPath.substr(textPos + 6);
+		}
+		return paths;
 	}
 };

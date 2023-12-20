@@ -7,6 +7,22 @@ void profile()
 {
 	cout << "						Bilal Ahmad  2022-CS-170  Data Structures and Algorithms" << endl;
 }
+string lowerCase(string input)
+{
+	string lower = "";
+	for (char c : input)
+		lower += tolower(c);
+	return lower;
+}
+int specificCharCount(string input, char character) {
+	int count = 0;
+	for (char ch : input) {
+		if (ch == character) {
+			count++;
+		}
+	}
+	return count;
+}
 
 int main()
 {
@@ -21,147 +37,243 @@ int main()
 
 	while (true)
 	{
+		source = "";
+		destination = "";
 		cout << currFolder->getPath() << commandPrompt;
-		getline(cin, command);
-		command = currFolder->removeLeadingSpaces(command);
+		getline(cin, input);
+		input = currFolder->removeLeadingSpaces(input);
+		stringstream strStream(input);
+		strStream >> command;
+		command = lowerCase(command);
+		strStream >> source;
+		strStream >> destination;
 
-		if (currFolder->isAttrib(command))
+		if (command == "attrib")
 		{
-			if(!currFolder->attrib(command))
-				cout << "The system can not find the directory specified." << endl;
-
-				continue;
-		}
-		else if (currFolder->ismkdir(command))
-		{
-			if (currFolder->isdirExist(command))
+			if (source == "")
 			{
-				cout << "A subdirectory " << currFolder->getSubStrAftrSpaceN(command, 1) << " already exists."<<endl <<endl;
+				cout << "The syntax of the command is incorrect" << endl << endl;
 				continue;
 			}
-			currFolder->mkdir(command);
+			if(!currFolder->attrib(input))
+				cout << "The system can not find the file specified." << endl << endl;
+
+				continue;
 		}
-		else if (currFolder->isrmdir(command))
+		else if (command == "mkdir")
 		{
-			if (!currFolder->isdirExist(command))
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+			if (currFolder->isdirExist(input))
+			{
+				cout << "A subdirectory " << currFolder->getStrAfterSpaceN(input, 1) << " already exists."<<endl <<endl;
+				continue;
+			}
+			currFolder->mkdir(input);
+		}
+		else if (command == "rmdir")
+		{
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+			if (!currFolder->isdirExist(input))
+			{
+				cout << "The system can not find the directory specified." << endl << endl;
+				continue;
+			}
+			currFolder->rmdir(input);
+		}
+		else if (command == "find")
+		{
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+			if (currFolder->Find(currFolder->getStrAfterSpaceN(input, 1)))
+			{
+				cout << "File found." << endl << endl;
+			}
+			else
+				cout << "The system can not find the file specified." << endl << endl;
+		}
+		else if (command == "findf")
+		{
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+			File* file = currFolder->Find(currFolder->getStrAfterSpaceN(input, 1));
+			if (!file)
 			{
 				cout << "The system can not find the file specified." << endl << endl;
 				continue;
 			}
-			currFolder->rmdir(command);
+
+				cout << "Enter string you want to search in the provided file : ";
+				getline(cin,input);
+
+				bool isFound = currFolder->findF(file->name,input);
+				if (isFound)
+					cout << "provided String found";
+				else
+					cout << "The system can not find the provided string in the file specified";
+				cout << endl << endl;
+			
 		}
-		else if (currFolder->isFind(command))
+		else if (command == "findstr")
 		{
-			if (currFolder->Find(currFolder->getSubStrAftrSpaceN(command, 1)))
+			cout << "Enter string you want to search in the current directory : ";
+			getline(cin, input);
+
+			cout << currFolder->findstr(input)<<endl;
+		}
+		else if (command == "copy")
+		{
+			if (source == "" || destination == "")
 			{
-				cout << "File found.";
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
 			}
-			else
-				cout << "The system can not find the file specified.";
+			
+			cout << currFolder->copy(input)<<endl<<endl;
 		}
-		else if (currFolder->isCopy(command))
+		else if (command == "move")
 		{
-			cout << currFolder->copy(command)<<endl<<endl;
-			continue;
+			if (source == "" || destination == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+
+			cout << currFolder->move(input) << endl << endl;
 		}
-		else if (currFolder->isChangeDir(command) && currFolder->isdirExist(command))
+		else if (command == "cd")
 		{
-			currFolder = currFolder->changeDir(command);
-			continue;
+			if (currFolder->isdirExist(input))
+			{
+				currFolder = currFolder->changeDir(input);
+				continue;
+			}
+			cout << "The system can not find the directory specified" << endl << endl;
 		}
-		else if (currFolder->isPrevDir(command))
+		else if (command == "cd..")
 		{
 			currFolder = currFolder->prevDir();
 			continue;
 		}
-		else if (currFolder->isDir(command))
+		else if (command == "dir")
 		{
 			currFolder->dir();
 			continue;
 		}
-		else if (currFolder->isCreate(command))
+		else if (command == "create")
 		{
-			if (currFolder->isFileExist(command))
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+
+			if (currFolder->isFileExist(input))
 				cout << "File already exist" << endl;
-			else if (!currFolder->isExtensionValid(command))
+			else if (!currFolder->isExtensionValid(input))
 				cout << "Invalid File extension" << endl;
 			else
-				currFolder->createFile(command);
+				currFolder->createFile(input);
+		}
+		else if (command == "edit")
+		{
+			currFolder->edit(input);
+		}
+		else if (command == "rename")
+		{
+			if (source == "" || destination == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
 
-			continue;
+			cout << currFolder->renameFile(input) << endl << endl;
 		}
-		else if (currFolder->isEdit(command))
+		else if (command == "del")
 		{
-			currFolder->edit(command);
-		}
-		else if (currFolder->isRename(command))
-		{
-			cout << currFolder->renameFile(command) << endl << endl;
-			continue;
-		}
-		else if (currFolder->isDel(command))
-		{
-			bool isDeleted = currFolder->del(command);
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+			bool isDeleted = currFolder->del(input);
 			if (!isDeleted)
-				cout << "could not found " << currFolder->getPath() << command.substr(4) << endl << endl;
+				cout << "could not found " << currFolder->getPath() << input.substr(4) << endl << endl;
 
-			continue;
 		}
-		else if (currFolder->isConvert(command))
+		else if (command == "convert")
 		{
-			currFolder->convert(command);
+			if (source == "" || destination == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
+			currFolder->convert(source,destination);
 		}
-		else if (currFolder->isGotoRoot(command))
+		else if (command == "cd\\")
 		{
 			currFolder = currFolder->getRoot();
 			continue;
 		}
-		else if (currFolder->isCurrDir(command))
+		else if (command == "cd.")
 		{
 			cout << endl;
 			continue;
 		}
-		else if (currFolder->isFormat(command))
+		else if (command == "format")
 		{
-			if (currFolder->isdirExist(command))
+			if (currFolder->isdirExist(input))
 			{
-				cout << currFolder->Format(command) << endl << endl;
+				cout << currFolder->Format(input) << endl << endl;
 				continue;
 		}
 			cout << "The system can not find the directory specified"<<endl<<endl;
 		}
-		else if (currFolder->isTree(command))
+		else if (command == "tree")
 		{
 			currFolder->Tree(currFolder,0);
 		}
-		else if (currFolder->isPrompt(command))
+		else if (command == "prompt")
 		{
 			char val;
-			val = currFolder->prompt(command);
+			val = currFolder->prompt(command,source);
 			if (val != NULL)
 				commandPrompt = val;
 			else
 				cout << "Invalid choice." << endl << endl;
 		}
-		else if (currFolder->isExit(command))
+		else if (command == "exit")
 		{
 			break;
 		}
-		else if (currFolder->isHelp(command))
+		else if (command == "help")
 		{
 			currFolder->help();
 		}
-		else if (currFolder->isCls(command))
+		else if (command == "cls")
 		{
 			currFolder->clearScreen();
 		}
-		else if (currFolder->isVer(command))
+		else if (command == "ver")
 		{
 			currFolder->ver();
 		}
-		else if (currFolder->isPprint(command))
+		else if (command == "pprint")
 		{
-			File* file = currFolder->addToPriorityQueue(command);
+			File* file = currFolder->addToPriorityQueue(input);
 			if (!file)
 			{
 				cout << "The system can not Find the file specified"<<endl<<endl;
@@ -172,9 +284,9 @@ int main()
 			cout << "File " << "\'" << file->name << "\'" << " added to the priority print queue."<<endl << endl;
 
 		}
-		else if (currFolder->isPrint(command))
+		else if (command == "print")
 		{
-			File* file = currFolder->addToQueue(command);
+			File* file = currFolder->addToQueue(input);
 			if (!file)
 			{
 				cout << "The system can not Find the file specified" << endl << endl;
@@ -184,35 +296,35 @@ int main()
 			currFolder->print();
 			cout << "File " << "\'" << file->name << "\'" << " added to the print queue." << endl << endl;
 		}
-		else if (currFolder->isQueue(command))
+		else if (command == "queue")
 		{
 			cout << "Print Queue : " << endl;
 			currFolder->print();
 			cout << endl << endl;
 		}
-		else if (currFolder->isPqueue(command))
+		else if (command == "pqueue")
 		{
 			cout << "Priority Print Queue : " << endl;
 			currFolder->pprint();
 			cout << endl << endl;
 		}
-		else if (currFolder->isSave(command))
+		else if (command == "save")
 		{
 			currFolder->saveTree();
 			currFolder->saveFiles();
 		}
-		else if (currFolder->isPwd(command))
+		else if (command == "pwd")
 		{
-			currFolder->pwd(command);
+			currFolder->pwd();
 		}
-		else if (currFolder->isLoadTree(command))
+		else if (command == "loadtree")
 		{
 			currFolder->loadTree();
 			currFolder->loadFiles();
 		}
 		else
 		{
-			cout << currFolder->getSubStrAftrSpaceN(command,0) << " is not recognized as an internal or external command," << endl;
+			cout << command << " is not recognized as an internal or external command," << endl;
 			cout << "operable program or batch file." << endl << endl;
 		}
 	
