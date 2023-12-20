@@ -1,7 +1,7 @@
 #include <iostream>
 #include "node.h"
-#include<conio.h>
-
+#include <conio.h>
+#include <sstream>
 
 void profile()
 {
@@ -11,10 +11,12 @@ void profile()
 int main()
 {
 	profile();
+	string input;
 	string command;
-	node rootFolder = node("V:", false);
+	string source;
+	string destination;
+	node rootFolder = node("V:",nullptr, false);
 	node* currFolder = &rootFolder;
-	currFolder->loadingFiles();
 	string commandPrompt = ">";
 
 	while (true)
@@ -193,6 +195,20 @@ int main()
 			cout << "Priority Print Queue : " << endl;
 			currFolder->pprint();
 			cout << endl << endl;
+		}
+		else if (currFolder->isSave(command))
+		{
+			currFolder->saveTree();
+			currFolder->saveFiles();
+		}
+		else if (currFolder->isPwd(command))
+		{
+			currFolder->pwd(command);
+		}
+		else if (currFolder->isLoadTree(command))
+		{
+			currFolder->loadTree();
+			currFolder->loadFiles();
 		}
 		else
 		{

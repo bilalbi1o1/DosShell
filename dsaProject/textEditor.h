@@ -9,7 +9,6 @@
 #include<Windows.h>
 
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-extern list<string> Files;
 
 struct state
 {
@@ -291,7 +290,7 @@ public:
 				}
 				else if (ch == 75) // Left arrow key
 				{
-					if (currCol - 1 > 0)
+					if (currCol - 1 >= 0)
 					{
 						colItr--;
 						currCol--;
@@ -299,7 +298,7 @@ public:
 				}
 				else if (ch == 77) // Right arrow key
 				{
-					if (currCol == 159 || colItr == --(*rowItr).end() || colItr == (*rowItr).end())
+					if (currCol == 159 || colItr == (*rowItr).end())
 						continue;
 
 					colItr++;
@@ -353,16 +352,16 @@ public:
 		// Update the console cursor position
 		gotoRowCol(currRow, currCol);
 	}
-	void handleEnter(std::ofstream& wrt)
+	void handleEnter(ofstream& wrt)
 	{
 		rowItr = text.begin();
-		std::advance(rowItr, currRow);
+		advance(rowItr, currRow);
 
 		colItr = (*rowItr).begin();
-		std::advance(colItr, currCol);
+		advance(colItr, currCol);
 
 		// Insert a newline character
-		auto newRowItr = text.insert(++rowItr, std::list<char>(colItr, (*rowItr).end()));
+		auto newRowItr = text.insert(++rowItr, list<char>(colItr, (*rowItr).end()));
 
 		// Erase the content after the cursor in the current line using iterators from newRowItr
 		if (newRowItr != text.end()) {
@@ -370,8 +369,9 @@ public:
 		}
 
 		// Move to the next line
-		//std::advance(rowItr, 1);  // advance to the next line
+		rowItr = newRowItr;
 		currRow++;
+		colItr = (*rowItr).begin();
 		currCol = 0;
 
 		system("cls");
@@ -411,9 +411,10 @@ public:
 			(*prevRowItr).splice(lastCharItr, (*rowItr));
 
 			// Remove the current line
-			rowItr = text.erase(rowItr);
+			text.erase(rowItr);
+			rowItr = prevRowItr;
 			currRow--;
-			currCol = lastCharItr != (*prevRowItr).end() ? std::distance((*prevRowItr).begin(), lastCharItr) : 0;
+			currCol = lastCharItr != (*prevRowItr).end() ? distance((*prevRowItr).begin(), lastCharItr) : 0;
 		}
 		else {
 			// Delete the character to the left
@@ -526,7 +527,7 @@ public:
 		currCol = 0, currRow = 0;
 		print();
 	}
-	static void closing()
+	/*static void closing()
 	{
 		ofstream wrt;
 		wrt.open("fileNames.txt");
@@ -536,5 +537,5 @@ public:
 			wrt << (*i) << endl;
 		}
 		wrt.close();
-	}
+	}*/
 };

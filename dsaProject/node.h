@@ -7,7 +7,6 @@
 #include "textEditor.h"
 #include <queue>
 
-list<string> Files;
 queue<File*> pq;
 queue<File*> que;
 
@@ -32,11 +31,12 @@ public:
 	list<node*> subFolders;
 	list<File*> files;
 
-	node(string foldername, bool isReadOnly)
+	node(string foldername,node* parentFolder, bool isReadOnly)
 	{
 		name = foldername;
 		creationTime = File::setCreationTime();
 		owner = "Bilal";
+		parent = parentFolder;
 		readOnly = isReadOnly;
 	}
 
@@ -77,16 +77,12 @@ public:
 		}
 		return nullptr;
 	}
-	string* isFileExist(string input)
+	bool isFileExist(string input)
 	{
 		string name = getSubStrAftrSpaceN(input, 1);
 
-		for (string fileName : Files)
-		{
-			if (fileName == name)
-				return &fileName;
-		}
-		return nullptr;
+		bool isExist = Find(name);
+		return isExist;
 	}
 
 	bool isAttrib(string input)
@@ -182,6 +178,81 @@ public:
 		}
 		else
 			return "Invalid Path(s).";
+	}
+
+	bool isLoadTree(string input)
+	{
+		string command = lowerCase(input);
+		if (command == "loadtree")
+			return true;
+		
+		return false;
+	}
+	void loadTree()
+	{
+		ifstream file("tree.txt");
+		if (file.is_open())
+		{
+			string s;
+			while (getline(file, s))
+			{
+				stringstream path = stringstream(s);
+				string folder;
+				node* currFolder = getRoot();
+				int count = 0;
+				for (char c : s)
+				{
+					if (c == '\\')
+						count++;
+				}
+				for (int i = 0; i < count; i++)
+				{
+					getline(path, folder, '\\');
+					currFolder = currFolder->findFolder(folder);
+				}
+				getline(path, folder, '\\');
+				node* newFolder = new node(folder,currFolder, "");
+				currFolder->subFolders.push_back(newFolder);
+			}
+		}
+		file.close();
+	}
+	void loadFiles()
+	{
+		ifstream file("fileNames.txt");
+		string s;
+		while (getline(file, s))
+		{
+			stringstream path = stringstream(s);
+			string folder;
+			node* currFolder = getRoot();
+			int count = 0;
+			for (char c : s)
+			{
+				if (c == '\\')
+					count++;
+			}
+			for (int i = 0; i < count; i++)
+			{
+				getline(path, folder, '\\');
+				currFolder = currFolder->findFolder(folder);
+			}
+			getline(path, folder, '\\');
+			File* file = new File(folder, false);
+			currFolder->files.push_back(file);
+		}
+	}
+	node* findFolder(string name)
+	{
+		list<node*>::iterator i;
+		for (i = subFolders.begin(); i != subFolders.end(); i++)
+		{
+			if ((*i)->name == name)
+			{
+				return (*i);
+			}
+		}
+		return nullptr;
 	}
 
 	bool isFind(string input)
@@ -330,8 +401,7 @@ public:
 	{
 
 		string subFolderName = input.substr(6, input.length());
-		node* subFolder = new node(subFolderName, false);
-		subFolder->parent = this;
+		node* subFolder = new node(subFolderName,this, false);
 
 		this->subFolders.push_back(subFolder);
 	}
@@ -438,11 +508,6 @@ public:
 		newFile->parentFolder = this;
 		files.push_back(newFile);
 
-
-		Files.push_back(name);
-		ofstream wrt(name.c_str());
-		wrt.close();
-		textEditor::closing();
 		return newFile;
 	}
 
@@ -471,30 +536,11 @@ public:
 		fileEditor.openSavedFile(rdr);
 		rdr.close();
 
-		ofstream wrt(filename.c_str(), ios_base::app);
-		clearScreen();
+		ofstream wrt(filename.c_str(), ios_base::out);
 		fileEditor.editFile(wrt);
 		clearScreen();
 		system("color 09");
 		wrt.close();
-
-	}
-	void editing()
-	{
-		system("color 09");
-		int r = 0, c = 0;
-
-		textEditor currFile;
-		ifstream rdr;
-		ofstream wrtr;
-		//rdr.open("SaveFile.txt");
-		//wrtr.open("RecentFile.txt");
-		//currFile.input(rdr);
-		while (true)
-		{
-			//currFile.choice(rdr);
-		}
-		rdr.close();
 
 	}
 
@@ -596,20 +642,6 @@ public:
 			return true;
 		}
 		return false;
-	}
-
-	void loadingFiles()
-	{
-		ifstream rdr;
-		rdr.open("fileNames.txt");
-		string filename;
-		rdr >> filename;
-
-		while (!rdr.eof())
-		{
-			Files.push_back(filename);
-			rdr >> filename;
-		}
 	}
 
 	bool isRename(string input)
@@ -889,6 +921,85 @@ public:
 		cout << "Microsoft Windows [Version 10.0.19045.3803]" << endl << endl;
 	}
 	
+	void saveFolderPaths(node* folder, queue<string>& q)
+	{
+		if (folder == nullptr)
+			return;
+		q.push(folder->getPath());
+		for (auto i : folder->subFolders)
+		{
+			saveFolderPaths(i,q);
+		}
+	}
+	void saveFilePaths(node* folder, queue<string>& q)
+	{
+		if (folder == nullptr)
+			return;
+		for (auto i : folder->files)
+		{
+			q.push(folder->getPath(i));
+		}
+		for (auto i : folder->subFolders)
+		{
+			saveFilePaths(i,q);
+		}
+	}
+	void saveTree()
+	{
+		queue<string> q;
+		saveFolderPaths(getRoot(), q);
+		ofstream file("tree.txt");
+		while (!q.empty())
+		{
+			string i = q.front();
+			q.pop();
+			if (i.length() < 3)
+				continue;
+			i = i.substr(3);
+			file << i << endl;
+		}
+		file.close();
+	}
+	void saveFiles()
+	{
+		queue<string> q;
+		saveFilePaths(getRoot(), q);
+		ofstream file("fileNames.txt");
+		while (!q.empty())
+		{
+			string i = q.front();
+			q.pop();
+			if (i.length() < 3)
+				continue;
+			i = i.substr(3);
+			file << i << endl;
+		}
+		file.close();
+	}
+
+	bool isPwd(string input)
+	{
+		string command = lowerCase(input);
+		if (command == "pwd")
+			return true;
+
+		return false;
+	}
+	void pwd(string input)
+	{
+		cout << "Current Working directory is :"<< this->name << endl << endl;
+	}
+
+	bool isSave(string input)
+	{
+		string command = lowerCase(input.substr(0,input.find(' ')));
+		if (command == "save")
+		{
+			return true;
+		}
+		return false;
+	}
+
 	string lowerCase(string input)
 	{
 		string lower = "";
