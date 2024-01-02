@@ -38,7 +38,7 @@ public:
 		numberOfCharacters = 0;
 		numberOfLines = 0;
 		avgNumOfCharPerLine = 0;
-		timeTakesForPrint = 0;
+		timeTakesForPrint = 20;
 		readOnly = isReadOnly;
 	}
 	
@@ -155,8 +155,6 @@ public:
 			return Normal;
 		case 3:
 			return High;
-		default:
-			return Normal; // Default to Normal if something unexpected happens
 		}
 	}
 	int priorityValue()

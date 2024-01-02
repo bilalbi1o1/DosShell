@@ -7,9 +7,12 @@
 #include "textEditor.h"
 #include <queue>
 #include <tuple>
+#include <unordered_map>
 
 queue<File*> pq;
+deque<float> remainingTimeOfPq;
 queue<File*> que;
+queue<float> remainingTimeofQue;
 
 struct FilePriorityComparator
 {
@@ -89,7 +92,7 @@ public:
 	bool attrib(string input)
 	{
 		string fileName = lowerCase(getStrAfterSpaceN(input, 1));
-		
+
 		if (File* file = Find(fileName))
 		{
 			cout << "              Details of the given file are  " << endl << endl;
@@ -196,12 +199,17 @@ public:
 
 	void loadTree()
 	{
+		subFolders.clear();
+		files.clear();
 		ifstream file("tree.txt");
 		if (file.is_open())
 		{
 			string s;
 			while (getline(file, s))
 			{
+				if (s.empty())
+					continue;
+				
 				stringstream path = stringstream(s);
 				string folder;
 				node* currFolder = getRoot();
@@ -244,7 +252,10 @@ public:
 				currFolder = currFolder->findFolder(folder);
 			}
 			getline(path, folder, '\\');
+			if (!currFolder)
+				currFolder = getRoot();
 			File* file = new File(folder, false);
+			file->parentFolder = currFolder;
 			currFolder->files.push_back(file);
 		}
 	}
@@ -321,7 +332,7 @@ public:
 		}
 	}
 
-	char prompt(string input,string sign)
+	char prompt(string input, string sign)
 	{
 		string command = lowerCase(getStrAfterSpaceN(input, 1));
 		if (command == "prompt" && sign == "")
@@ -496,20 +507,26 @@ public:
 		if (pq.empty())
 		{
 			pq.push(file);
+			remainingTimeOfPq.push_back(file->timeTakesForPrint);
 		}
 		else
 		{
 			File* currPrintingFile = pq.front();
+			float time = remainingTimeOfPq.front();
 			pq.pop();
+			remainingTimeOfPq.pop_front();
 
 			priority_queue<File*, vector<File*>, FilePriorityComparator> priorityQ;
 			priorityQ.push(file);
+			remainingTimeOfPq.push_back(file->timeTakesForPrint);
+	
 			while (!pq.empty())
 			{
 				priorityQ.push(pq.front());
 				pq.pop();
 			}
 			pq.push(currPrintingFile);
+			remainingTimeOfPq.push_front(time);
 			while (!priorityQ.empty())
 			{
 				pq.push(priorityQ.top());
@@ -520,10 +537,37 @@ public:
 	}
 	void pprint()
 	{
+		bool isPrinting = true;
 		queue<File*> temp = pq;
+
+		if (pq.empty())
+		{
+			cout << "Queue is currently empty" << endl << endl;
+			return;
+		}
+
 		while (!temp.empty())
 		{
-			cout << temp.front()->name << "     " << temp.front()->priorityString() << endl;
+			if (remainingTimeOfPq.front() < 0) {
+				// Remove the file from the original queue (que)
+				pq.pop();
+				remainingTimeOfPq.pop_front();
+				isPrinting = false;
+			}
+			else
+			{
+				if (isPrinting) {
+					cout << temp.front()->name << "     " << temp.front()->priorityString() << "    Remaining Time : " << remainingTimeOfPq.front() << " seconds" << endl;
+					remainingTimeOfPq.front() -= getRandomNumber();
+					isPrinting = false;
+				}
+				else
+					cout << temp.front()->name << "     " << temp.front()->priorityString() << "    Remaining Time : " << temp.front()->timeTakesForPrint << " seconds" << endl;
+
+				// Move the file to the back of the original queue (que)
+				pq.push(pq.front());
+				pq.pop();
+			}
 			temp.pop();
 		}
 	}
@@ -536,15 +580,45 @@ public:
 			return nullptr;
 
 		que.push(file);
+		remainingTimeofQue.push(file->timeTakesForPrint);
 
 		return file;
 	}
 	void print()
 	{
+		bool isPrinting = true;
 		queue<File*> temp = que;
+
+		if (que.empty())
+		{
+			cout << "Queue is currently empty" << endl << endl;
+			return;
+		}
+
 		while (!temp.empty())
 		{
-			cout << temp.front()->name << "     " << endl;
+			if (remainingTimeofQue.front() < 0)
+			{
+				// Remove the file from the original queue (que)
+				que.pop();
+				remainingTimeofQue.pop();
+			}
+			else
+			{
+				cout << temp.front()->name << "    Remaining Time : " << remainingTimeofQue.front() << " seconds" << endl;
+
+				if (isPrinting) {
+					remainingTimeofQue.front() -= getRandomNumber();
+					isPrinting = false;
+				}
+
+				// Move the file to the back of the original queue (que)
+				remainingTimeofQue.push(remainingTimeofQue.front());
+				que.push(que.front());
+				remainingTimeofQue.pop();
+				que.pop();
+			}
+
 			temp.pop();
 		}
 	}
@@ -552,7 +626,7 @@ public:
 	string renameFile(string input)
 	{
 		string combineNames = getStrAfterSpaceN(input, 1);
-		tuple<string,string> names = getSourceDestinationPaths(combineNames);
+		tuple<string, string> names = getSourceDestinationPaths(combineNames);
 
 		File* file = Find(get<0>(names));
 		File* file2 = Find(get<1>(names));
@@ -588,7 +662,7 @@ public:
 		return del;
 	}
 
-	void convert(string ext1,string ext2)
+	void convert(string ext1, string ext2)
 	{
 		if (isExtensionValid(ext1) && isExtensionValid(ext2))
 		{
@@ -814,7 +888,7 @@ public:
 
 	void pwd()
 	{
-		cout << "Current Working directory is :" << this->name << endl << endl;
+		cout << "Current Working directory is : " << this->name << endl << endl;
 	}
 
 	string lowerCase(string input)
@@ -901,10 +975,10 @@ public:
 
 		return result;
 	}
-	tuple<string , string> getSourceDestinationPaths(string sourceDestinationPath)
+	tuple<string, string> getSourceDestinationPaths(string sourceDestinationPath)
 	{
 		tuple<string, string> paths;
-		
+
 		int txtPos = sourceDestinationPath.find(".txt");
 		int textPos = sourceDestinationPath.find(".text");
 
@@ -912,20 +986,20 @@ public:
 		{
 			if (txtPos < textPos)
 			{
-				get<0>(paths) = sourceDestinationPath.substr(0,txtPos+4);
+				get<0>(paths) = sourceDestinationPath.substr(0, txtPos + 4);
 				get<1>(paths) = sourceDestinationPath.substr(txtPos + 5);
 			}
 			else
 			{
 				get<1>(paths) = sourceDestinationPath.substr(0, textPos + 5);
-				get<0>(paths) = sourceDestinationPath.substr(textPos +6);
+				get<0>(paths) = sourceDestinationPath.substr(textPos + 6);
 			}
 		}
 		else if (txtPos != string::npos && textPos == string::npos)
 		{
-				get<0>(paths) = sourceDestinationPath.substr(0, txtPos + 4);
-				int txtPos2 = sourceDestinationPath.find(".txt",txtPos + 5);
-				get<1>(paths) = sourceDestinationPath.substr(txtPos + 5);
+			get<0>(paths) = sourceDestinationPath.substr(0, txtPos + 4);
+			int txtPos2 = sourceDestinationPath.find(".txt", txtPos + 5);
+			get<1>(paths) = sourceDestinationPath.substr(txtPos + 5);
 		}
 		else if (txtPos == string::npos && textPos != string::npos)
 		{
@@ -934,5 +1008,15 @@ public:
 			get<1>(paths) = sourceDestinationPath.substr(textPos + 6);
 		}
 		return paths;
+	}
+	int getRandomNumber() {
+
+		random_device rd;
+		mt19937 gen(rd());
+		uniform_int_distribution<> distribution(1, 5);
+
+		int randomValue = distribution(gen);
+
+		return randomValue;
 	}
 };

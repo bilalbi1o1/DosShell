@@ -31,7 +31,7 @@ int main()
 	string command;
 	string source;
 	string destination;
-	node rootFolder = node("V:",nullptr, false);
+	node rootFolder = node("V:", nullptr, false);
 	node* currFolder = &rootFolder;
 	string commandPrompt = ">";
 
@@ -41,6 +41,8 @@ int main()
 		destination = "";
 		cout << currFolder->getPath() << commandPrompt;
 		getline(cin, input);
+		if (input == "")
+			continue;
 		input = currFolder->removeLeadingSpaces(input);
 		stringstream strStream(input);
 		strStream >> command;
@@ -55,10 +57,10 @@ int main()
 				cout << "The syntax of the command is incorrect" << endl << endl;
 				continue;
 			}
-			if(!currFolder->attrib(input))
+			if (!currFolder->attrib(input))
 				cout << "The system can not find the file specified." << endl << endl;
 
-				continue;
+			continue;
 		}
 		else if (command == "mkdir")
 		{
@@ -69,7 +71,7 @@ int main()
 			}
 			if (currFolder->isdirExist(input))
 			{
-				cout << "A subdirectory " << currFolder->getStrAfterSpaceN(input, 1) << " already exists."<<endl <<endl;
+				cout << "A subdirectory " << currFolder->getStrAfterSpaceN(input, 1) << " already exists." << endl << endl;
 				continue;
 			}
 			currFolder->mkdir(input);
@@ -116,23 +118,23 @@ int main()
 				continue;
 			}
 
-				cout << "Enter string you want to search in the provided file : ";
-				getline(cin,input);
+			cout << "Enter string you want to search in the provided file : ";
+			getline(cin, input);
 
-				bool isFound = currFolder->findF(file->name,input);
-				if (isFound)
-					cout << "provided String found";
-				else
-					cout << "The system can not find the provided string in the file specified";
-				cout << endl << endl;
-			
+			bool isFound = currFolder->findF(file->name, input);
+			if (isFound)
+				cout << "provided String found";
+			else
+				cout << "The system can not find the provided string in the file specified";
+			cout << endl << endl;
+
 		}
 		else if (command == "findstr")
 		{
 			cout << "Enter string you want to search in the current directory : ";
 			getline(cin, input);
 
-			cout << currFolder->findstr(input)<<endl;
+			cout << currFolder->findstr(input) << endl;
 		}
 		else if (command == "copy")
 		{
@@ -141,8 +143,8 @@ int main()
 				cout << "The syntax of the command is incorrect" << endl << endl;
 				continue;
 			}
-			
-			cout << currFolder->copy(input)<<endl<<endl;
+
+			cout << currFolder->copy(input) << endl << endl;
 		}
 		else if (command == "move")
 		{
@@ -190,7 +192,13 @@ int main()
 		}
 		else if (command == "edit")
 		{
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
 			currFolder->edit(input);
+			cout << endl << endl;
 		}
 		else if (command == "rename")
 		{
@@ -221,7 +229,7 @@ int main()
 				cout << "The syntax of the command is incorrect" << endl << endl;
 				continue;
 			}
-			currFolder->convert(source,destination);
+			currFolder->convert(source, destination);
 		}
 		else if (command == "cd\\")
 		{
@@ -239,17 +247,17 @@ int main()
 			{
 				cout << currFolder->Format(input) << endl << endl;
 				continue;
-		}
-			cout << "The system can not find the directory specified"<<endl<<endl;
+			}
+			cout << "The system can not find the directory specified" << endl << endl;
 		}
 		else if (command == "tree")
 		{
-			currFolder->Tree(currFolder,0);
+			currFolder->Tree(currFolder, 0);
 		}
 		else if (command == "prompt")
 		{
 			char val;
-			val = currFolder->prompt(command,source);
+			val = currFolder->prompt(command, source);
 			if (val != NULL)
 				commandPrompt = val;
 			else
@@ -273,19 +281,29 @@ int main()
 		}
 		else if (command == "pprint")
 		{
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
 			File* file = currFolder->addToPriorityQueue(input);
 			if (!file)
 			{
-				cout << "The system can not Find the file specified"<<endl<<endl;
+				cout << "The system can not Find the file specified" << endl << endl;
 				continue;
 			}
-			cout << "Priority Print Queue : "<<endl;
+			cout << "Priority Print Queue : " << endl;
 			currFolder->pprint();
-			cout << "File " << "\'" << file->name << "\'" << " added to the priority print queue."<<endl << endl;
+			cout << "File " << "\'" << file->name << "\'" << " added to the priority print queue." << endl << endl;
 
 		}
 		else if (command == "print")
 		{
+			if (source == "")
+			{
+				cout << "The syntax of the command is incorrect" << endl << endl;
+				continue;
+			}
 			File* file = currFolder->addToQueue(input);
 			if (!file)
 			{
@@ -327,7 +345,7 @@ int main()
 			cout << command << " is not recognized as an internal or external command," << endl;
 			cout << "operable program or batch file." << endl << endl;
 		}
-	
+
 	}
 	return 0;
 }
